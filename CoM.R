@@ -14,6 +14,11 @@ models <- qs_read("data/models.qs2")
 mic <- read.table("data/mic.table")
 meta <- fread("data/meta.tsv")
 
+dir.create("results/Nutrition_0.005", recursive = TRUE)
+dir.create("results/Nutrition_0.01")
+dir.create("results/ICF_0.005")
+dir.create("results/ICF_0.01")
+
 # all simulations repeated in a sensitivity analysis with the following parameters
 # standard/scenario 0: bwcost trp 400, pFBAcoeff 1e-3, cpl_c 50, cpl_u 0.001
 # scenario 1: bwcost trp 200, -//-
@@ -22,16 +27,17 @@ meta <- fread("data/meta.tsv")
 # scenario 4: bwcost trp 400, pFBAcoeff 1.5e-3, -//-
 # scenario 5: bwcost trp 400, pFBAcoeff 1e-3, cpl_c 500, cpl_c 0.01
 
-##### ------------------------------ Simulation with abundance cut-off at 0.005 ----------------------------------------#############
+
+##### ----------- Simulation with abundance cut-off at 0.005 ------------ ######
 
 abun_co <- 0.005
 
-#########################################################################################
+###############################################################################
 ##
-##  1. Identification of minimal lower bounds throughout all individual microbial
-##  models to create comparable nutritional environment
+##  1. Identification of minimal lower bounds throughout all individual
+##  microbial models to create comparable nutritional environment
 ##
-#########################################################################################
+###############################################################################
 
 # 1.1 Create files with exchange reactions for all communities
 
@@ -48,20 +54,26 @@ for (i in seq_along(meta$mg.id)) {
 
   cmod <- fixBMRatios(cmod)
   cmod <- fluxBMCoupling(cmod, cpl_c = 50, cpl_u = 0.001)
-  nutri <- subset(findExchReact(cmod), exchange_type=="Community" & grepl("^EX_",react_id))
+  nutri <- subset(findExchReact(cmod),
+                  exchange_type =="Community" & grepl("^EX_",react_id))
   nutri <- merge(nutri, mgx_spl)
-  fwrite (nutri, file = paste0("results/Nutrition_0.005/", mgx_spl,".tsv"), sep = "\t")
+  fwrite (nutri, file = paste0("results/Nutrition_0.005/", mgx_spl,".tsv"),
+          sep = "\t")
 }
 
 # 1.2 extract minimum lower bound for each reaction
 
-ExchR <- list.files(path = "results/Nutrition_0.005/", pattern = "\\.tsv", full.names=TRUE)
+ExchR <- list.files(path = "results/Nutrition_0.005/", pattern = "\\.tsv",
+                    full.names=TRUE)
 all_ExchR <- as.data.table(rbindlist(lapply(ExchR, fread), fill=TRUE))
-fwrite(all_ExchR, file = paste0("results/Nutrition_0.005/exchangeReactions.tsv"), sep = "\t")
+fwrite(all_ExchR, file = paste0(
+  "results/Nutrition_0.005/exchangeReactions.tsv"), sep = "\t")
 
 minlb <- all_ExchR[, .SD[which.min(lb)], by = react_id]
-minlb <- minlb[, .(react_id = gsub("^EX_|_e0|_c0$", "", react_id), met_name, lb)]
-fwrite(minlb, file = paste0("results/Nutrition_0.005/minLowerBounds.tsv"), sep ="\t")
+minlb <- minlb[, .(react_id = gsub("^EX_|_e0|_c0$", "", react_id),
+                   met_name, lb)]
+fwrite(minlb, file = paste0("results/Nutrition_0.005/minLowerBounds.tsv"),
+       sep ="\t")
 
 ##########################################################################
 ##
@@ -104,16 +116,25 @@ for (i in seq_along(meta$mg.id)) {
   dtsol[, index := str_extract(string = react, pattern = "^M[0-9]+")]
   dtsol[, mg.id := mgx_spl]
   dtsol <- merge(dtsol, cmod@community[, c("index","name")], all.x = TRUE)
-  dtsol <- merge(dtsol, meta[mg.id == mgx_spl, .(mg.id, disease)], by = "mg.id", all.x = TRUE)
-  dtsol <- dtsol[grepl("bio1|cpd00359|cpd27289|cpd00065|cpd00054|cpd00211|cpd00029|cpd00141|rxn01964|rxn00474|rxn00473|rxn08751", react)]
+  dtsol <- merge(dtsol, meta[mg.id == mgx_spl, .(mg.id, disease)], by = "mg.id",
+                 all.x = TRUE)
+  dtsol <- dtsol[grepl("bio1|cpd00359|cpd27289|cpd00065|cpd00054|cpd00211|
+                       cpd00029|cpd00141|rxn01964|rxn00474|rxn00473|rxn08751",
+                       react)]
   dtsol <- dtsol[abs(flux) > 1e-6]
-  fwrite (dtsol, file = paste0("results/Icf_Im_pM_abun0.005/scen/", mgx_spl, ".tsv"), sep = "\t")
+  fwrite (dtsol, file = paste0("results/ICF_0.005/raw/", mgx_spl, ".tsv"),
+          sep = "\t")
 }
 
 # merge into one tsv
-files <- list.files(path = "results/Icf_Im_pM_abun0.005/scen/", pattern = "\\.tsv", full.names=TRUE)
+files <- list.files(path = "results/ICF_0.005/raw/", pattern = "\\.tsv",
+                    full.names=TRUE)
 all_data <- rbindlist(lapply(files, fread), fill=TRUE)
-fwrite (all_data, file = paste0("results/Icf_Im_pM_abun0.005/scen/all_samples_combined.tsv"), sep = "\t")
+
+# !change directory name to specific scenario
+fwrite (all_data,
+        file = paste0("results/ICF_0.005/all_samples_combined_scen.tsv"),
+        sep = "\t")
 
 
 #################################################################################################################################
@@ -143,20 +164,26 @@ for (i in seq_along(meta$mg.id)) {
 
   cmod <- fixBMRatios(cmod)
   cmod <- fluxBMCoupling(cmod, cpl_c = 50, cpl_u = 0.001)
-  nutri <- subset(findExchReact(cmod), exchange_type=="Community" & grepl("^EX_",react_id))
+  nutri <- subset(findExchReact(cmod),
+                  exchange_type=="Community" & grepl("^EX_",react_id))
   nutri <- merge(nutri, mgx_spl)
-  fwrite (nutri, file = paste0("results/Nutrition_0.01/", mgx_spl,".tsv"), sep = "\t")
+  fwrite (nutri, file = paste0("results/Nutrition_0.01/", mgx_spl,".tsv"),
+          sep = "\t")
 }
 
 # 1.2 extract minimum lower bound for each reaction
 
-ExchR <- list.files(path = "results/Nutrition_0.01/", pattern = "\\.tsv", full.names=TRUE)
+ExchR <- list.files(path = "results/Nutrition_0.01/", pattern = "\\.tsv",
+                    full.names=TRUE)
 all_ExchR <- as.data.table(rbindlist(lapply(ExchR, fread), fill=TRUE))
-fwrite(all_ExchR, file = paste0("results/Nutrition_0.01/exchangeReactions.tsv"), sep = "\t")
+fwrite(all_ExchR, file = paste0("results/Nutrition_0.01/exchangeReactions.tsv"),
+       sep = "\t")
 
 minlb <- all_ExchR[, .SD[which.min(lb)], by = react_id]
-minlb <- minlb[, .(react_id = gsub("^EX_|_e0|_c0$", "", react_id), met_name, lb)]
-fwrite(minlb, file = paste0("results/Nutrition_0.01/minLowerBounds.tsv"), sep ="\t")
+minlb <- minlb[, .(react_id = gsub("^EX_|_e0|_c0$", "", react_id),
+                   met_name, lb)]
+fwrite(minlb, file = paste0("results/Nutrition_0.01/minLowerBounds.tsv"),
+       sep ="\t")
 
 ##########################################################################
 ##
@@ -198,15 +225,23 @@ for (i in seq_along(meta$mg.id)) {
   dtsol[, index := str_extract(string = react, pattern = "^M[0-9]+")]
   dtsol[, mg.id := mgx_spl]
   dtsol <- merge(dtsol, cmod@community[, c("index","name")], all.x = TRUE)
-  dtsol <- merge(dtsol, meta[mg.id == mgx_spl, .(mg.id, disease)], by = "mg.id", all.x = TRUE)
-  dtsol <- dtsol[grepl("bio1|cpd00359|cpd27289|cpd00054|cpd00211|cpd00029|cpd00141|rxn01964|rxn00474|rxn00473|rxn08751", react)]
+  dtsol <- merge(dtsol, meta[mg.id == mgx_spl, .(mg.id, disease)], by = "mg.id",
+                 all.x = TRUE)
+  dtsol <- dtsol[grepl("bio1|cpd00359|cpd27289|cpd00054|cpd00211|cpd00029|
+                       cpd00141|rxn01964|rxn00474|rxn00473|rxn08751", react)]
   dtsol <- dtsol[abs(flux) > 1e-6]
-  fwrite (dtsol, file = paste0("results/Icf_Im_pM_abun0.01/scen/", mgx_spl, ".tsv"), sep = "\t")
+  fwrite (dtsol, file = paste0("results/ICF_0.01/raw/", mgx_spl, ".tsv"),
+          sep = "\t")
 }
 
 
 # merge into one tsv
-files <- list.files(path = "results/Icf_Im_pM_abun0.01/scen/", pattern = "\\.tsv", full.names=TRUE)
+files <- list.files(path = "results/ICF_0.01/raw/", pattern = "\\.tsv",
+                    full.names=TRUE)
 all_data <- rbindlist(lapply(files, fread), fill=TRUE)
-fwrite (all_data, file = paste0("results/Icf_Im_pM_abun0.01/scen/all_samples_combined.tsv"), sep = "\t")
+
+# !change directory name to specific scenario
+fwrite (all_data,
+        file = paste0("results/ICF_0.01/scen/all_samples_combined_scen.tsv"),
+        sep = "\t")
 
