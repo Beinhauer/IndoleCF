@@ -1,10 +1,13 @@
 library(data.table)
 library(dunn.test)
+library(vegan)
 library(ppcor)
 library(rstatix)
 
 meta <- fread("data/meta.tsv")
 meta$disease <- as.factor(meta$disease)
+mic <- read.table("data/mic.table")
+
 
 dir.create("output/stat")
 
@@ -264,10 +267,9 @@ fwrite(is_ad_cor, file = "output/tables/spearman_salvagager_abun_adiv.tsv",
        sep ="\t")
 
 results_all_pcor <- data.table()
-for (i in unique(salvager_ad_age$disease)){
-  dt <- salvager_ad_age[disease == i]
-  spear <- pcor.test(dt$Abundance, dt$shannon, dt[,c("Age", "unmapped")],
-                     method = "spearman")
+for (i in unique(is_ad_cor$disease)){
+  dt <- is_ad_cor[disease == i]
+  spear <- cor.test(dt$Abundance, dt$shannon, method = "spearman")
   dt_spear <- data.table(disease = i, statistic = spear$statistic,
                          rho = round(spear$estimate, digits = 3),
                          pval = signif(spear$p.value, digits = 2),
@@ -502,7 +504,7 @@ for (i in unique(dt_long$disease)){
   for (j in unique(cf$abun_co)){
     cf_aco <- cf[abun_co == j]
     dt <- merge(cf_aco, is[, .(mg.id, Abundance, Age, unmapped)], by = "mg.id")
-    spear <- pcor.test(dt$crossfeeding, dt$Abundance, dt[, c("Age", "unmapped")],
+    spear <- cor.test(dt$crossfeeding, dt$Abundance,
                        method = "spearman")
     dt_spear <- data.table(disease = i, abun_co = j,
                            statistic = spear$statistic,
