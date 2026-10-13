@@ -1,7 +1,6 @@
 library(data.table)
 library(dunn.test)
 library(vegan)
-library(ppcor)
 library(rstatix)
 
 meta <- fread("data/meta.tsv")
