@@ -502,7 +502,7 @@ for (i in unique(dt_long$disease)){
   is <- abun_salv_pc[disease == i]
   for (j in unique(cf$abun_co)){
     cf_aco <- cf[abun_co == j]
-    dt <- merge(cf_aco, is[, .(mg.id, Abundance, Age, unmapped)], by = "mg.id")
+    dt <- merge(cf_aco, is[, .(mg.id, Abundance)], by = "mg.id")
     spear <- cor.test(dt$crossfeeding, dt$Abundance,
                        method = "spearman")
     dt_spear <- data.table(disease = i, abun_co = j,
@@ -513,6 +513,7 @@ for (i in unique(dt_long$disease)){
     results_pc <- rbind(results_pc, dt_spear)
   }
 }
+
 
 fwrite(results_pc, file = "output/stat/partial_cor_IS_ICF.tsv", sep = "\t")
 

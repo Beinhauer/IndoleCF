@@ -13,7 +13,7 @@ COBRAR_SETTINGS("SOLVER","cplex")
 
 hrgm <- fread("data/HRGMv2_metadata_clusters.tsv")
 models <- qs_read("data/models.qs2")
-mic <- read.table("data/mic.table")
+mic <- as.data.table(read.table("data/mic.table"), keep.rownames = "mg.id")
 meta <- fread("data/meta.tsv")
 
 abun_co <- 0.005
@@ -77,7 +77,10 @@ results_IS <- merge(results_IS,
 results_onlyIS <- subset(results_IS, growth > 0)
 results_onlyIS <- cbind(results_onlyIS, X = "x") #was macht das?
 
+fwrite(rel_salvager, file = "output/tables/Indolesalvagers.tsv", sep = "\t")
+
 rel_salvager <- intersect(results_onlyIS$cluster, colnames(mic))
+
 
 
 # calculate relative abundance of salvagers in samples
@@ -109,7 +112,7 @@ fwrite(dt_salvager_abun, file = "output/tables/salvager_abundance.tsv",
        sep ="\t")
 
 
-# calculate prevalence of salvagers in samples
+# calculate prevalence of salvagers in all samples
 
 salvager_prev_all <- salvager_abun_long[, .(prevalent = mean(abundance > 0)*100),
                                         by = .(cluster, mg.id)]
